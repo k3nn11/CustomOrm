@@ -4,7 +4,6 @@
     {
         public InvalidMappingException(string message) : base(message)
         {
-
         }
     }
 }
