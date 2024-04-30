@@ -25,8 +25,6 @@ namespace ORM.Schema
 
         public PropertyInfo? PrimaryProperty { get; private set; }
 
-        private DataTable DataTable { get; set; }
-
         private DataColumn DataColumn { get; set; }
 
         private DataContext DataContext { get; set; }
@@ -162,8 +160,10 @@ namespace ORM.Schema
             {
                 return null;
             }
+
             StringBuilder sqlScript = new();
             sqlScript.AppendFormat("CREATE TABLE {0} (", dataTable.TableName);
+
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
                 sqlScript.AppendFormat("\n\t[{0}]", dataTable.Columns[i].ColumnName);
@@ -183,6 +183,7 @@ namespace ORM.Schema
                 sqlScript.Append(',');
 
             }
+
             if (dataTable.PrimaryKey.Length > 0)
             {
                 StringBuilder primaryKeySql = new StringBuilder();
@@ -203,8 +204,8 @@ namespace ORM.Schema
             {
                 sqlScript.Remove(sqlScript.Length - 1, 1);
             }
-
             sqlScript.Append("\n);");
+
             return sqlScript.ToString();
         }
 
@@ -256,6 +257,7 @@ namespace ORM.Schema
                         dbColumns[currentIndex] = modelColumns[newIndex].ToString();
                         currentIndex++;
                     }
+
                     newIndex++;
                 }               
             }
@@ -273,49 +275,48 @@ namespace ORM.Schema
         // make method shorter.
         private DataTable Build()
         {
-            DataTable = new();
+            DataTable dataTable = new();
             var tableAttribute = (TableAttribute?)Attribute.GetCustomAttribute(_type, typeof(TableAttribute));
             Properties = _type.GetProperties();
             UpdateProperties = _type.GetProperties().Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
 
             if (tableAttribute is not null)
             {
-                DataTable.TableName = tableAttribute.TableName;
+                dataTable.TableName = tableAttribute.TableName;
             }
             else
             {
-                DataTable.TableName = _type.Name;
+                dataTable.TableName = _type.Name;
             }
 
             foreach (var prop in Properties)
             {        
-                DataTable.Columns.Add(new DataColumn());
+                dataTable.Columns.Add(new DataColumn());
                 Attribute[] attributes = Attribute.GetCustomAttributes(prop);
-                AssignDataColumns(prop, attributes);
+                BuildDataColumn(prop, attributes, dataTable);
             }
-            return DataTable;
+            return dataTable;
         }
 
-        private void AssignDataColumns(PropertyInfo prop, Attribute[] attributes)
+        private void BuildDataColumn(PropertyInfo prop, Attribute[] attributes, DataTable dataTable)
         {
+            DataColumn dataColumn = new();
             if (attributes.Length > 0)
             {
                 foreach (Attribute attr in attributes)
                 {
                     if (attr is ColumnAttribute columnAttr)
                     {
-                        DataColumn.ColumnName = columnAttr.ColumnName;
-                        DataColumn.DataType = columnAttr.DataType;
-                        DataColumn.AutoIncrement = columnAttr.AutoIncrement;
-                        DataColumn.AllowDBNull = columnAttr.AllowNullable;
+                        dataColumn.ColumnName = columnAttr.ColumnName;
+                        dataColumn.DataType = columnAttr.DataType;
+                        dataColumn.AutoIncrement = columnAttr.AutoIncrement;
+                        dataColumn.AllowDBNull = columnAttr.AllowNullable;
                     }
                     if (attr is PrimaryAttribute pk)
                     {
-                        DataTable.PrimaryKey = [DataColumn];
-                        DataColumn.DataType = prop.PropertyType;
-                        DataColumn.ColumnName = pk.Name;
-                        DataColumn.DataType = prop.PropertyType;
-                        DataTable.PrimaryKey = [DataColumn];
+                        dataTable.PrimaryKey = [DataColumn];
+                        dataColumn.ColumnName = pk.Name;
+                        dataColumn.DataType = prop.PropertyType;
                         PrimaryProperty = prop;
                     }
                     //if(attr is ForeignKeyAttribute foreign)
@@ -331,18 +332,20 @@ namespace ORM.Schema
                 Regex rg = new(pattern, RegexOptions.IgnoreCase);
                 if (rg.IsMatch(prop.Name))
                 {
-                    DataTable.PrimaryKey = [DataColumn];
-                    DataColumn.ColumnName = prop.Name;
-                    DataColumn.DataType = prop.PropertyType;
+                    dataTable.PrimaryKey = [DataColumn];
+                    dataColumn.ColumnName = prop.Name;
+                    dataColumn.DataType = prop.PropertyType;
+                    PrimaryProperty = prop;
                 }
                 else
                 {
-                    DataColumn.ColumnName = prop.Name;
-                    DataColumn.DataType = prop.PropertyType;
-                    DataColumn.AutoIncrement = false;
-                    DataColumn.AllowDBNull = Nullable.GetUnderlyingType(prop.PropertyType) != null;
+                    dataColumn.ColumnName = prop.Name;
+                    dataColumn.DataType = prop.PropertyType;
+                    dataColumn.AllowDBNull = Nullable.GetUnderlyingType(prop.PropertyType) != null;
                 }
             }
+
+            dataTable.Columns.Add(dataColumn);
         }
 
         private List<string?> GetDbColumns(string tableName)
@@ -350,19 +353,23 @@ namespace ORM.Schema
             List<string?> columns = [];
             DataTable? dataTable = new();
             string query = $"SELECT COLUMN_NAME\n\tFROM INFORMATION_SCHEMA.COLUMNS\n\tWHERE TABLE_NAME = '{tableName}'";
+
             using (SqlCommand cmd = _connection.CreateCommand())
             {
                 cmd.CommandText = query;
+
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     dataTable.Load(reader);
                 }
             }
+
             for (int i = 0; i < dataTable.Rows.Count; i++)
             {
                 var row = dataTable.Rows[i].ItemArray.GetValue(0);
                 columns.Add(row.ToString());
             }
+
             return columns;
         }
 
