@@ -1,7 +1,15 @@
-﻿namespace ORM.CustomAttribute
+﻿using System.Globalization;
+
+namespace ORM.CustomAttribute
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-    internal class PrimaryAttribute : Attribute
+    public class PrimaryAttribute : Attribute
     {
+        public  string Name {  get;}
+
+        public PrimaryAttribute(string name) 
+        {
+            Name = name;
+        }
     }
 }
