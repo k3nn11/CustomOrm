@@ -1,0 +1,53 @@
+﻿using ORM.BaseClass;
+using ORM.Exceptions;
+using ORM.Schema;
+using ORM.Services;
+using System.Data.Common;
+namespace ORM.IO
+{
+    internal class TableReader<T> where T : IEntity
+    {
+        private TableManager<T> TableManager { get; }
+        public TableReader(TableManager<T> tableManager) 
+        { 
+            TableManager = tableManager;
+        }
+
+        public IEnumerable<T> Read(string query)
+        {
+            List<T> results = [];
+
+            using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand(query))
+            {
+
+                using (DbDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.FieldCount != TableManager.Properties.Length)
+                    {
+                        throw new InvalidMappingException("The mapping of table '" + TableManager._type.Name + "' is not consistent with the SQL structure.");
+                    }
+                    while (reader.Read())
+                    {
+                        var obj = new object[TableManager.Properties.Length];
+
+                        for (var i = 0; i < reader.FieldCount; i++)
+                        {
+                            obj[i] = TypeConvertion.ToClrType((System.Data.SqlDbType)reader[i]);
+                        }
+
+                        T entity = Activator.CreateInstance<T>();
+
+                        for (int i = 0; i < TableManager.Properties.Length; i++)
+                        {
+                            TableManager.Properties[i].SetValue(entity, obj[i]);
+                        }
+
+                        results.Add(entity);
+                    }
+                }
+            }
+
+            return results;
+        }
+    }
+}
