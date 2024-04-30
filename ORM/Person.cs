@@ -15,7 +15,9 @@ namespace ORM
         public string Description { get; set; }
 
         [Column("Rating", typeof (string), AllowNullable = true)]
+
         public int Rating { get; set; }
-        public uint Id { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public uint Id { get; set; }
     }
 }

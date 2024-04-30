@@ -271,12 +271,13 @@ namespace ORM.Schema
         }
         // to do 
         // make method shorter.
-        private DataTable? Build()
+        private DataTable Build()
         {
             DataTable = new();
             var tableAttribute = (TableAttribute?)Attribute.GetCustomAttribute(_type, typeof(TableAttribute));
-             Properties = _type.GetProperties();
+            Properties = _type.GetProperties();
             UpdateProperties = _type.GetProperties().Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
+
             if (tableAttribute is not null)
             {
                 DataTable.TableName = tableAttribute.TableName;
@@ -287,11 +288,8 @@ namespace ORM.Schema
             }
 
             foreach (var prop in Properties)
-            {
-                
-                DataColumn = new();
-                DataTable.Columns.Add(DataColumn);
-
+            {        
+                DataTable.Columns.Add(new DataColumn());
                 Attribute[] attributes = Attribute.GetCustomAttributes(prop);
                 AssignDataColumns(prop, attributes);
             }
@@ -304,7 +302,7 @@ namespace ORM.Schema
             {
                 foreach (Attribute attr in attributes)
                 {
-                    if (attr is CustomAttribute.ColumnAttribute columnAttr)
+                    if (attr is ColumnAttribute columnAttr)
                     {
                         DataColumn.ColumnName = columnAttr.ColumnName;
                         DataColumn.DataType = columnAttr.DataType;
@@ -315,7 +313,7 @@ namespace ORM.Schema
                     {
                         DataTable.PrimaryKey = [DataColumn];
                         DataColumn.DataType = prop.PropertyType;
-                        DataColumn.ColumnName = prop.Name;
+                        DataColumn.ColumnName = pk.Name;
                         DataColumn.DataType = prop.PropertyType;
                         DataTable.PrimaryKey = [DataColumn];
                         PrimaryProperty = prop;
