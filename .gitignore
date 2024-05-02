@@ -8,3 +8,16 @@
 /.vs/ORM/FileContentIndex/999ad6d8-75ec-4a9c-a655-a1875ab96096.vsidx
 /.vs/ORM/FileContentIndex/c400028f-07ae-471b-ae1b-1c097b656f60.vsidx
 /.vs/ORM/FileContentIndex/d76a2959-3ad7-4edb-a135-29578a1952a4.vsidx
+*.v2
+*.bin
+*.dll
+*.json
+*.exe
+*.pdb
+/ORM/obj/Debug/net5.0
+/ORM/obj/Debug/net8.0
+*.cache
+*.targets
+*.props
+*.csproj
+*.user
