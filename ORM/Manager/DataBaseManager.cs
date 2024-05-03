@@ -1,11 +1,10 @@
-﻿using Microsoft.Data.SqlClient;
-using System;
-using System.Data;
-using ORM.ConnectionFactory;
-using System.Reflection;
+﻿using ORM.ConnectionFactory;
 using ORM.Manager;
 using ORM.Extension;
 using ORM.BaseClass;
+using System.Reflection;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace ORM.Schema
 {
@@ -45,13 +44,14 @@ namespace ORM.Schema
 
         private void CreateAllTables()
         {
-            Create();
+            CreateDatabase();
             foreach(var table in _tables.Values)
             {
                 table.CreateTable();
             }
         }
-        public int Create()
+
+        private int CreateDatabase()
         {
             string query = $"Create Database {_dBName}";
             int check = 0;
@@ -65,6 +65,7 @@ namespace ORM.Schema
             }
             return check;
         }
+
         public void Delete()
         {
             string cmd = $"DROP DATABASE {_dBName}";
