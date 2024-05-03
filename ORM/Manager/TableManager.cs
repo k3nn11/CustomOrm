@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace ORM.Schema
 {
-    public class TableManager<T> : ITable where T : IEntity
+    public class TableManager<T> :ITableIO<T>, ITable where T : IEntity
     {
         public readonly Type _type = typeof(T);
 
@@ -62,8 +62,7 @@ namespace ORM.Schema
                         _connection.Open();
                         createCommand.CommandType = CommandType.Text;
                         createCommand.ExecuteNonQuery();
-                    }
-                    
+                    }           
                 }      
             }
             catch (SqlException e)
@@ -114,6 +113,7 @@ namespace ORM.Schema
                 command.Connection.Close();
             }
         }
+
         public IEnumerable<T> Select()
         {
             return Reader.Read(string.Format(SQLQueries.SELECT, _type.Name));
