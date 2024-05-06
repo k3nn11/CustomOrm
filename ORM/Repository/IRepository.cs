@@ -1,17 +1,24 @@
-﻿using System;
+﻿using ORM.BaseClass;
+using System;
 
 namespace ORM.RepositoryImplementation
 {
-    internal interface IRepository<TClass> where TClass : class
+    internal interface IRepository<TEntity> where TEntity : IEntity
     {
-        IEnumerable<TClass> GetAll();
+        void Add(TEntity entity);
 
-        TClass FindById(int id);
+        void AddRange(IEnumerable<TEntity> entities);
 
-        void Add(TClass entity);
+        IEnumerable<TEntity> GetAll();
 
-        void RemoveById(int id);
+        TEntity GetById(int id);
 
-        void Update(TClass entity);
+        int RemoveById(int id);
+
+        int Remove(IEnumerable<TEntity> entities);
+
+        int RemoveAll();
+
+        int Update(TEntity entity);
     }
 }

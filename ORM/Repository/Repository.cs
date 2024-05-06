@@ -1,35 +1,63 @@
-﻿using System;
+﻿using ORM.BaseClass;
+using ORM.Context;
 
 namespace ORM.RepositoryImplementation
 {
-    internal class Repository<TClass> : IRepository<TClass> where TClass : class
+    public class Repository<TEntity> : IRepository<TEntity> where TEntity : IEntity
     {
-        public void Add(TClass entity)
+        private DBContext<TEntity> Context;
+
+        public Repository(DBContext<TEntity> context) 
+        { 
+            Context = context;
+        }
+
+        public void Add(TEntity entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException("Entity is null");
+            }
+
+           Context.DbSet.Insert(entity);
+        }
+
+        public void AddRange(IEnumerable<TEntity> entities)
+        {
+            if(!entities.Any() || entities == null)
+            {
+                throw new ArgumentException("Entities are null");
+            }
+
+            Context.DbSet.Insert(entities);
+        }
+
+        public IEnumerable<TEntity> GetAll()
+        {
+            Context.DbSet.Select();
+        }
+
+        public TEntity GetById(int id)
         {
             throw new NotImplementedException();
         }
 
-        public TClass FindById(int id)
+        public int Remove(IEnumerable<TEntity> entities)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<TClass> GetAll()
+        public int RemoveAll()
         {
             throw new NotImplementedException();
         }
 
-        public void Remove(TClass entity)
+        public int RemoveById(int id)
         {
             throw new NotImplementedException();
         }
 
-        public void RemoveById(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(TClass entity)
+        public int Update(TEntity entity)
         {
             throw new NotImplementedException();
         }
