@@ -1,6 +1,6 @@
 ﻿namespace ORM.UnitOfWorkImplementation
 {
-    internal class UnitOfWork<TContext> : IUnitOfWork<TContext>, IDisposable
+    internal class UnitOfWork<TContext> : IUnitOfWork<TContext>
     {
         public void Commit()
         {
@@ -8,11 +8,6 @@
         }
 
         public void CreateTransaction()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
         {
             throw new NotImplementedException();
         }

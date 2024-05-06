@@ -1,23 +1,24 @@
 ﻿using Microsoft.Data.SqlClient;
 using ORM.BaseClass;
-using ORM.ConnectionFactory;
+using ORM.Context;
 using ORM.CustomAttribute;
-using ORM.DataContextImplementation;
+using ORM.Expressions;
 using ORM.IO;
 using ORM.Manager;
 using ORM.Services;
 using System.Data;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ORM.Schema
 {
-    public class TableManager<T> :ITableIO<T>, ITable where T : IEntity
+    public class TableManager<T> :IDbSet<T>, ITable where T : IEntity
     {
         public readonly Type _type = typeof(T);
 
-        private readonly SqlConnection _connection;
+        //private readonly SqlConnection _connection;
 
         public PropertyInfo[] Properties { get; private set; }
 
@@ -29,7 +30,7 @@ namespace ORM.Schema
 
         private DataColumn DataColumn { get; set; }
 
-        private DataContext DataContext { get; set; }
+        private DBContext<T> Context { get; set; }
 
         private TableReader<T> Reader { get; set; }
 
@@ -41,8 +42,8 @@ namespace ORM.Schema
 
         public TableManager(DataBaseManager dataBase, string tableName)
         {
-            _connection = DataContext.Connection;
             Database = dataBase;
+            Database.Provider.Connect();
             Reader = new TableReader<T>(this);
             Writer = new TableWriter<T>(this);
             Name = tableName;
@@ -51,18 +52,12 @@ namespace ORM.Schema
         public void CreateTable()
         {
             string? command = CreateShemaScript();
-            SqlCommand createCommand = Database.Provider.CreateSqlCommand();
 
             try
             {
-                using(_connection)
+                using (SqlCommand createCommand = Database.Provider.CreateSqlCommand())
                 {
-                    if(_connection.State != ConnectionState.Open)
-                    {
-                        _connection.Open();
-                        createCommand.CommandType = CommandType.Text;
-                        createCommand.ExecuteNonQuery();
-                    }           
+                    Database.Provider.NonQuery(command);
                 }      
             }
             catch (SqlException e)
@@ -77,21 +72,14 @@ namespace ORM.Schema
 
         public void UpdateDbSchema()
         {
+            string? command = UpdateSchemaScript();
+
             try
             {
-                using(_connection)
+                using (SqlCommand updateCommand = Database.Provider.CreateSqlCommand())
                 {
-                    if(_connection.State == ConnectionState.Closed)
-                    {
-                        _connection.Open();
-                        string? command = UpdateSchemaScript();
-                        using (SqlCommand updateCommand = Database.Provider.CreateSqlCommand())
-                        {
-                            updateCommand.CommandType = CommandType.Text;
-                        }
-
-                    }
-                }              
+                    Database.Provider.NonQuery(command);
+                }
             }
             catch (SqlException e)
             {
@@ -103,20 +91,16 @@ namespace ORM.Schema
             }
         }
 
-        public void Drop()
-        {
-            SqlCommand command = new($"DROP TABLE {_type.Name}", _connection);
-            using (_connection)
-            {
-                command.Connection.Open();
-                command.ExecuteNonQuery();
-                command.Connection.Close();
-            }
-        }
-
         public IEnumerable<T> Select()
         {
             return Reader.Read(string.Format(SQLQueries.SELECT, _type.Name));
+        }
+
+        public IEnumerable<T> Select(Expression<Func<T, bool>> expression)
+        {
+            QueryBuilder builder = new QueryBuilder();
+            builder.Translate(expression);
+            return Reader.Read(string.Format(SQLQueries.SELECT, Name) + string.Format(SQLQueries.WHERE_CLAUSE, builder.WhereClause));
         }
 
         public void Insert(T entity)
@@ -143,6 +127,14 @@ namespace ORM.Schema
         {
             var primaryKey = PrimaryProperty.GetValue(entity);
             string query = string.Format(SQLQueries.DELETE, _type.Name) + string.Format(SQLQueries.WHERE_CLAUSE, PrimaryProperty.Name + "=" + primaryKey);
+            return Database.Provider.NonQuery(query);
+        }
+
+        public int Delete(Expression<Func<T,bool>> expression)
+        {
+            QueryBuilder builder = new QueryBuilder();
+            builder.Translate(expression);
+            string query = string.Format(SQLQueries.DELETE, _type.Name) + string.Format(SQLQueries.WHERE_CLAUSE, builder.WhereClause);
             return Database.Provider.NonQuery(query);
         }
 
@@ -352,7 +344,7 @@ namespace ORM.Schema
             List<string?> columns = [];
             DataTable? dataTable = new();
             string query = $"SELECT COLUMN_NAME\n\tFROM INFORMATION_SCHEMA.COLUMNS\n\tWHERE TABLE_NAME = '{tableName}'";
-            using (SqlCommand cmd = _connection.CreateCommand())
+            using (SqlCommand cmd = Database.Provider.CreateSqlCommand())
             {
                 cmd.CommandText = query;
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -368,16 +360,16 @@ namespace ORM.Schema
             return columns;
         }
 
-        private bool IsTableExist()
-        {
-            string tableName = _type.Name;
-            using (_connection)
-            {
-                _connection.Open();
-                DataTable dTable = _connection.GetSchema("TABLES",
-                               new string[] { null, null, tableName });
-                return dTable.Rows.Count > 0;
-            }
-        }
+        //private bool IsTableExist()
+        //{
+        //    string tableName = _type.Name;
+        //    using (_connection)
+        //    {
+        //        _connection.Open();
+        //        DataTable dTable = _connection.GetSchema("TABLES",
+        //                       new string[] { null, null, tableName });
+        //        return dTable.Rows.Count > 0;
+        //    }
+        //}
     }
 }

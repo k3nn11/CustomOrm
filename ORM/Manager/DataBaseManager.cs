@@ -66,6 +66,22 @@ namespace ORM.Schema
             return check;
         }
 
+        public void DropTable(string tableName)
+        {
+            if(!_tables.Values.Any() || string.IsNullOrEmpty(tableName))
+            {
+                return;
+            }
+
+            var IsExist = _tables.Values.Select(x => x.Name == tableName).FirstOrDefault();
+            if(IsExist)
+            {
+                var cmd = $"DROP TABLE {tableName}";
+                SqlCommand command = Provider.CreateSqlCommand();
+                Provider.NonQuery(cmd);
+            }
+        }
+
         public void Delete()
         {
             string cmd = $"DROP DATABASE {_dBName}";
@@ -93,5 +109,6 @@ namespace ORM.Schema
             }
             return null;
         }
+
     }
 }
