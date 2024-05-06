@@ -1,7 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Data;
 using ORM.Exceptions;
-using ORM.DataContextImplementation;
+using ORM.Context;
 
 namespace ORM.ConnectionFactory
 {
@@ -13,14 +13,12 @@ namespace ORM.ConnectionFactory
     {
         public char ParameterPrefix => '@';
 
-        public SqlConnection Connection { get; set; }
+        public SqlConnection Connection { get; private set; }
 
-        public DataContext DataContext { get; set; }
 
-        public SqlProvider(DataContext dataContext)
+        public SqlProvider(string connection)
         {
-            DataContext = dataContext;
-            Connection = DataContext.Connection;
+            Connection = new SqlConnection(connection);
         }
 
         public SqlCommand CreateSqlCommand()
