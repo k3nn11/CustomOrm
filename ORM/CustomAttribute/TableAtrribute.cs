@@ -1,7 +1,7 @@
 ﻿namespace ORM.CustomAttribute
 {
 
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class TableAttribute : Attribute
     {
         public string TableName

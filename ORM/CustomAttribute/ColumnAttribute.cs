@@ -11,6 +11,8 @@
 
         public Type DataType { get; set; }
 
+        public int MaxLength {  get; set; }
+
         public ColumnAttribute(string columnName, Type dataType)
         {
             AllowNullable = false;
