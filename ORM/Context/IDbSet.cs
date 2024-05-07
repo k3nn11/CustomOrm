@@ -13,9 +13,9 @@ namespace ORM.Context
 
         public void Insert(IEnumerable<T> entities);
 
-        public void Update(T entity);
+        public int Update(T entity);
 
-        public void Update(IEnumerable<T> entities);
+        public int Update(IEnumerable<T> entities);
 
         public int Delete(T entity);
 
