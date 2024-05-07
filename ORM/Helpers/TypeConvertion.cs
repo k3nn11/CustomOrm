@@ -10,15 +10,20 @@ namespace ORM.Services
         {
             DbType dbType = ToDbType(type);
             SqlParameter parameter = new();
+
             try
             {
                 parameter.DbType = dbType;
             }
             catch (InvalidMappingException e)
             {
-
                 Console.WriteLine($"Error details: {e.Message}");
             }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error details: {e.Message}");
+            }
+
             SqlDbType sqlDbType = parameter.SqlDbType;
             return sqlDbType;
         }
