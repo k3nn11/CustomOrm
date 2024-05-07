@@ -4,7 +4,6 @@ namespace ORM.BaseClass
 {
     public interface IEntity
     {
-        [Primary]
-        uint Id { get; set; }
+        int Id { get; set; }
     }
 }
