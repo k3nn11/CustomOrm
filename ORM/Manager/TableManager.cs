@@ -6,6 +6,7 @@ using ORM.Expressions;
 using ORM.IO;
 using ORM.Manager;
 using ORM.Services;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -18,8 +19,6 @@ namespace ORM.Schema
     {
         public readonly Type _type = typeof(T);
 
-        //private readonly SqlConnection _connection;
-
         public PropertyInfo[] Properties { get; private set; }
 
         public PropertyInfo[] UpdateProperties {  get; private set; } 
@@ -30,8 +29,6 @@ namespace ORM.Schema
 
         private DataColumn DataColumn { get; set; }
 
-        private DBContext<T> Context { get; set; }
-
         private TableReader<T> Reader { get; set; }
 
         private TableWriter<T> Writer { get; set; }
@@ -40,13 +37,13 @@ namespace ORM.Schema
 
         public string Name { get; private set; }
 
-        public TableManager(DataBaseManager dataBase, string tableName)
+        public TableManager(DataBaseManager dataBase)
         {
             Database = dataBase;
             Database.Provider.Connect();
             Reader = new TableReader<T>(this);
             Writer = new TableWriter<T>(this);
-            Name = tableName;
+
         }
 
         public void CreateTable()
@@ -105,7 +102,7 @@ namespace ORM.Schema
 
         public void Insert(T entity)
         {
-            Writer.Insert(new[] { entity });
+            Writer.Insert([entity]);
         }
 
         public void Insert(IEnumerable<T> entities)
@@ -113,14 +110,14 @@ namespace ORM.Schema
             Writer.Insert(entities);
         }
 
-        public void Update(T entity)
+        public int Update(T entity)
         {
-            Writer.Update(new[] { entity });
+            return Writer.Update(new[] { entity });
         }
 
-        public void Update(IEnumerable<T> entities)
+        public int Update(IEnumerable<T> entities)
         {
-            Writer.Update(entities);
+            return Writer.Update(entities);
         }
 
         public int Delete(T entity)
@@ -147,6 +144,7 @@ namespace ORM.Schema
         {
             return Database.Provider.NonQuery(string.Format(SQLQueries.DELETE, _type.Name));
         }
+
         private string? CreateShemaScript()
         {
             DataTable? dataTable = Build();
@@ -155,7 +153,8 @@ namespace ORM.Schema
                 return null;
             }
             StringBuilder sqlScript = new();
-            sqlScript.AppendFormat("CREATE TABLE {0} (", dataTable.TableName);
+            sqlScript.AppendFormat("CREATE TABLE [{0}] (", dataTable.TableName);
+
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
                 sqlScript.AppendFormat("\n\t[{0}]", dataTable.Columns[i].ColumnName);
@@ -172,6 +171,7 @@ namespace ORM.Schema
                 {
                     sqlScript.Append(" NOT NULL");
                 }
+
                 sqlScript.Append(',');
 
             }
@@ -269,6 +269,7 @@ namespace ORM.Schema
             var tableAttribute = (TableAttribute?)Attribute.GetCustomAttribute(_type, typeof(TableAttribute));
              Properties = _type.GetProperties();
             UpdateProperties = _type.GetProperties().Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
+
             if (tableAttribute is not null)
             {
                 DataTable.TableName = tableAttribute.TableName;
@@ -277,6 +278,8 @@ namespace ORM.Schema
             {
                 DataTable.TableName = _type.Name;
             }
+
+            Name = DataTable.TableName;
 
             foreach (var prop in Properties)
             {
@@ -296,13 +299,19 @@ namespace ORM.Schema
             {
                 foreach (Attribute attr in attributes)
                 {
-                    if (attr is CustomAttribute.ColumnAttribute columnAttr)
+                    if (attr is ColumnAttribute columnAttr)
                     {
                         DataColumn.ColumnName = columnAttr.ColumnName;
                         DataColumn.DataType = columnAttr.DataType;
                         DataColumn.AutoIncrement = columnAttr.AutoIncrement;
                         DataColumn.AllowDBNull = columnAttr.AllowNullable;
+
+                        if(columnAttr.MaxLength != 0)
+                        {
+                            DataColumn.MaxLength = columnAttr.MaxLength;
+                        }
                     }
+
                     if (attr is PrimaryAttribute pk)
                     {
                         DataTable.PrimaryKey = [DataColumn];
