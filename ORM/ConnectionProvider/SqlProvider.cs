@@ -44,7 +44,7 @@ namespace ORM.ConnectionFactory
 
         public void Connect()
         {
-            if (Connection != null)
+            if (Connection == null)
             {
                 throw new InvalidConnectionException("Connection is not available");
             }
