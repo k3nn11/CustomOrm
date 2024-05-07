@@ -1,7 +1,7 @@
 ﻿using ORM.BaseClass;
 using ORM.Context;
 
-namespace ORM.RepositoryImplementation
+namespace ORM.Repository
 {
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : IEntity
     {
@@ -34,32 +34,50 @@ namespace ORM.RepositoryImplementation
 
         public IEnumerable<TEntity> GetAll()
         {
-            Context.DbSet.Select();
+            return Context.DbSet.Select();
         }
 
-        public TEntity GetById(int id)
+        public TEntity? GetById(int id)
         {
-            throw new NotImplementedException();
+            if(id < 0)
+            {
+                return default;
+            }
+            
+            return (TEntity)Context.DbSet.Select(x => x.Id == id);
         }
 
         public int Remove(IEnumerable<TEntity> entities)
         {
-            throw new NotImplementedException();
+            return Context.DbSet.Delete(entities);
         }
 
         public int RemoveAll()
         {
-            throw new NotImplementedException();
+            return Context.DbSet.DeleteAll();
         }
 
         public int RemoveById(int id)
         {
-            throw new NotImplementedException();
+            TEntity? entity = GetById(id);
+            if(entity != null)
+            {
+                return Context.DbSet.Delete(entity);
+            }
+
+            return 0;
+            
         }
 
         public int Update(TEntity entity)
         {
-            throw new NotImplementedException();
+           TEntity updatedEntity = GetById(entity.Id); 
+            if(updatedEntity != null) 
+            {
+                return Context.DbSet.Update(updatedEntity);
+            }
+
+            return 0;
         }
     }
 }

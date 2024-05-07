@@ -1,9 +1,9 @@
 ﻿using ORM.BaseClass;
 using System;
 
-namespace ORM.RepositoryImplementation
+namespace ORM.Repository
 {
-    internal interface IRepository<TEntity> where TEntity : IEntity
+    public interface IRepository<TEntity> where TEntity : IEntity
     {
         void Add(TEntity entity);
 
