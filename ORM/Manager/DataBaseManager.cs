@@ -37,7 +37,7 @@ namespace ORM.Schema
             foreach (var type in tabletypes)
             {
                 Type genericType = typeof(TableManager<>).MakeGenericType([type]);
-                ITable table = (ITable)Activator.CreateInstance(genericType, new object[] { this, type.Name });
+                ITable table = (ITable)Activator.CreateInstance(genericType, new object[] { this});
                 _tables.Add(type, table);
             }
         }
@@ -63,6 +63,11 @@ namespace ORM.Schema
             {
                 Console.WriteLine($"Error details: {e.Message}");
             }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error details: {e.Message}");
+
+            }
             return check;
         }
 
@@ -74,6 +79,7 @@ namespace ORM.Schema
             }
 
             var IsExist = _tables.Values.Select(x => x.Name == tableName).FirstOrDefault();
+
             if(IsExist)
             {
                 var cmd = $"DROP TABLE {tableName}";
