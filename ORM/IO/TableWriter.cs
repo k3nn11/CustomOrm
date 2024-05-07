@@ -8,13 +8,16 @@ using System.Text;
 
 namespace ORM.IO
 {
-    internal class TableWriter<T> where T : IEntity
+    public class TableWriter<T> where T : IEntity
     {
-        private TableManager<T> TableManager { get;}
+
         public TableWriter(TableManager<T> tableManager)
         {
             TableManager = tableManager;
         }
+
+        private TableManager<T> TableManager { get; }
+
         public int Insert(IEnumerable<T> entities)
         {
             if (entities.Count() == 0)

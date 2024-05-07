@@ -5,19 +5,22 @@ using ORM.Services;
 using System.Data.Common;
 namespace ORM.IO
 {
-    internal class TableReader<T> where T : IEntity
+    public class TableReader<T> where T : IEntity
     {
-        private TableManager<T> TableManager { get; }
         public TableReader(TableManager<T> tableManager) 
         { 
             TableManager = tableManager;
         }
 
+        private TableManager<T> TableManager { get; }
+
+        // to do 
+        // check on query parameter and refactor to use the Provider
         public IEnumerable<T> Read(string query)
         {
             List<T> results = [];
 
-            using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand(query))
+            using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand())
             {
 
                 using (DbDataReader reader = command.ExecuteReader())
