@@ -12,6 +12,10 @@ namespace ORM.ConnectionFactory
 
         void Connect();
 
+        SqlConnection Connection { get; }
+
         SqlCommand CreateSqlCommand();
+
+        SqlCommand CreateSqlCommand(string query);
     }
 }
