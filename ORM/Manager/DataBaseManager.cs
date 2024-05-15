@@ -45,19 +45,30 @@ namespace ORM.Schema
         private void CreateAllTables()
         {
             CreateDatabase();
+
             foreach(var table in _tables.Values)
             {
+                if(IsTableExist(table.Name))
+                {
+                    continue;
+                }
+
                 table.CreateTable();
             }
         }
 
-        private int CreateDatabase()
+        private void CreateDatabase()
         {
+            if(IsDbExist(_dBName))
+            {
+                return;
+            }
+
             string query = $"Create Database {_dBName}";
-            int check = 0;
+
             try
             {
-                check = Provider.NonQuery(query);    
+                Provider.NonQuery(query);    
             }
             catch (SqlException e)
             {
@@ -68,7 +79,6 @@ namespace ORM.Schema
                 Console.WriteLine($"Error details: {e.Message}");
 
             }
-            return check;
         }
 
         public void DropTable(string tableName)
@@ -116,5 +126,37 @@ namespace ORM.Schema
             return null;
         }
 
+        private bool IsDbExist(string name)
+        {
+            int index = 0;
+            string query = "SELECT name from sys.databases";
+            using (var cmd = Provider.CreateSqlCommand(query))
+            {
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        if (dr[index].ToString() == name)
+                        {
+                            return true;
+                        }
+
+                        index++;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool IsTableExist(string tableName)
+        {
+            using (var conn = Provider.Connection)
+            {
+                conn.Open();
+                DataTable dTable = conn.GetSchema("TABLES",
+                               new string[] { null, null, tableName });
+                return dTable.Rows.Count > 0;
+            }
+        }
     }
 }
