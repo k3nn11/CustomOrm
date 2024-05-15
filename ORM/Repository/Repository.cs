@@ -5,11 +5,11 @@ namespace ORM.Repository
 {
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : IEntity
     {
-        private DBContext<TEntity> Context;
+        private readonly DBContext<TEntity> _context;
 
         public Repository(DBContext<TEntity> context) 
         { 
-            Context = context;
+            _context = context;
         }
 
         public void Add(TEntity entity)
@@ -19,7 +19,7 @@ namespace ORM.Repository
                 throw new ArgumentNullException("Entity is null");
             }
 
-           Context.DbSet.Insert(entity);
+           _context.DbSet.Insert(entity);
         }
 
         public void AddRange(IEnumerable<TEntity> entities)
@@ -29,12 +29,12 @@ namespace ORM.Repository
                 throw new ArgumentException("Entities are null");
             }
 
-            Context.DbSet.Insert(entities);
+            _context.DbSet.Insert(entities);
         }
 
         public IEnumerable<TEntity> GetAll()
         {
-            return Context.DbSet.Select();
+            return _context.DbSet.Select();
         }
 
         public TEntity? GetById(int id)
@@ -44,17 +44,17 @@ namespace ORM.Repository
                 return default;
             }
             
-            return (TEntity)Context.DbSet.Select(x => x.Id == id);
+            return (TEntity)_context.DbSet.Select(x => x.Id == id);
         }
 
         public int Remove(IEnumerable<TEntity> entities)
         {
-            return Context.DbSet.Delete(entities);
+            return _context.DbSet.Delete(entities);
         }
 
         public int RemoveAll()
         {
-            return Context.DbSet.DeleteAll();
+            return _context.DbSet.DeleteAll();
         }
 
         public int RemoveById(int id)
@@ -62,7 +62,7 @@ namespace ORM.Repository
             TEntity? entity = GetById(id);
             if(entity != null)
             {
-                return Context.DbSet.Delete(entity);
+                return _context.DbSet.Delete(entity);
             }
 
             return 0;
@@ -74,7 +74,7 @@ namespace ORM.Repository
            TEntity updatedEntity = GetById(entity.Id); 
             if(updatedEntity != null) 
             {
-                return Context.DbSet.Update(updatedEntity);
+                return _context.DbSet.Update(updatedEntity);
             }
 
             return 0;
