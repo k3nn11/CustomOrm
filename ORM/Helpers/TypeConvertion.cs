@@ -1,111 +1,100 @@
 ﻿using System.Data;
+using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
+using Microsoft.Identity.Client;
 using ORM.Exceptions;
 
 namespace ORM.Services
 {
     public static class TypeConvertion
     {
-        public static SqlDbType ToSqlDbType(Type type)
-        {
-            DbType dbType = ToDbType(type);
-            SqlParameter parameter = new();
+        private static Dictionary<Type, SqlDbType> sqlTypeMap;
 
-            try
-            {
-                parameter.DbType = dbType;
-            }
-            catch (InvalidMappingException e)
-            {
-                Console.WriteLine($"Error details: {e.Message}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error details: {e.Message}");
-            }
+        private static Dictionary<Type, List<SqlDbType>> netTypeMap;
 
-            SqlDbType sqlDbType = parameter.SqlDbType;
-            return sqlDbType;
-        }
-        private static DbType ToDbType(Type pType)
+        static TypeConvertion()
         {
-            switch (pType.Name.ToLower())
-            {
-                case "byte":
-                    return DbType.Byte;
-                case "sbyte":
-                    return DbType.SByte;
-                case "short":
-                case "int16":
-                    return DbType.Int16;
-                case "uint16":
-                    return DbType.UInt16;
-                case "int32":
-                    return DbType.Int32;
-                case "uint32":
-                    return DbType.UInt32;
-                case "int64":
-                    return DbType.Int64;
-                case "uint64":
-                    return DbType.UInt64;
-                case "single":
-                    return DbType.Single;
-                case "double":
-                    return DbType.Double;
-                case "decimal":
-                    return DbType.Decimal;
-                case "bool":
-                case "boolean":
-                    return DbType.Boolean;
-                case "string":
-                    return DbType.String;
-                case "char":
-                    return DbType.StringFixedLength;
-                case "Guid":
-                    return DbType.Guid;
-                case "DateTime":
-                    return DbType.DateTime;
-                case "DateTimeOffset":
-                    return DbType.DateTimeOffset;
-                case "byte[]":
-                    return DbType.Binary;
-                case "byte?":
-                    return DbType.Byte;
-                case "sbyte?":
-                    return DbType.SByte;
-                case "short?":
-                    return DbType.Int16;
-                case "ushort?":
-                    return DbType.UInt16;
-                case "int?":
-                    return DbType.Int32;
-                case "uint?":
-                    return DbType.UInt32;
-                case "long?":
-                    return DbType.Int64;
-                case "ulong?":
-                    return DbType.UInt64;
-                case "float?":
-                    return DbType.Single;
-                case "double?":
-                    return DbType.Double;
-                case "decimal?":
-                    return DbType.Decimal;
-                case "bool?":
-                    return DbType.Boolean;
-                case "char?":
-                    return DbType.StringFixedLength;
-                case "Guid?":
-                    return DbType.Guid;
-                case "DateTime?":
-                    return DbType.DateTime;
-                case "DateTimeOffset?":
-                    return DbType.DateTimeOffset;
-                default:
-                    return DbType.String;
-            }
+            SqlHelper();
+            NetHelper();
         }
 
+        public static SqlDbType GetDbType(Type netType)
+        {
+            netType = Nullable.GetUnderlyingType(netType) ?? netType;
+
+           
+            if (sqlTypeMap.TryGetValue(netType, out SqlDbType value))
+            {
+                return value;
+            }
+
+            throw new ArgumentException($"{netType.FullName} is not a supported .NET class");
+        }
+
+        public static SqlDbType GetDbType<T>()
+        {
+            return GetDbType(typeof(T));
+        }
+
+        public static Type GetNetType(SqlDbType sqlType)
+        {
+            foreach(var kvp in netTypeMap)
+            {
+                if(kvp.Value.Contains(sqlType))
+                {
+                    return kvp.Key;
+                }
+            }
+
+            throw new ArgumentException($"{sqlType} is not a supported .NET class");
+        }
+
+        private static void SqlHelper()
+        {
+            sqlTypeMap = new Dictionary<Type, SqlDbType>
+            {
+                [typeof(string)] = SqlDbType.NVarChar,
+                [typeof(char[])] = SqlDbType.NVarChar,
+                [typeof(byte)] = SqlDbType.TinyInt,
+                [typeof(short)] = SqlDbType.SmallInt,
+                [typeof(int)] = SqlDbType.Int,
+                [typeof(long)] = SqlDbType.BigInt,
+                [typeof(byte[])] = SqlDbType.VarBinary,
+                [typeof(bool)] = SqlDbType.Bit,
+                [typeof(DateTime)] = SqlDbType.DateTime2,
+                [typeof(DateTimeOffset)] = SqlDbType.DateTimeOffset,
+                [typeof(decimal)] = SqlDbType.Decimal,
+                [typeof(float)] = SqlDbType.Real,
+                [typeof(double)] = SqlDbType.Float,
+                [typeof(TimeSpan)] = SqlDbType.Time,
+                [typeof(object)] = SqlDbType.Variant,
+                [typeof(TimeSpan)] = SqlDbType.Time,
+                [typeof(Guid)] = SqlDbType.UniqueIdentifier
+            };
+        }
+        
+        private static void NetHelper()
+        {
+            netTypeMap = new Dictionary<Type, List<SqlDbType>>
+            {
+                [typeof(string)] = [SqlDbType.NVarChar, SqlDbType.Char, SqlDbType.NChar, SqlDbType.NText, SqlDbType.Text, SqlDbType.VarChar],
+                [typeof(byte)] = [SqlDbType.TinyInt],
+                [typeof(short)] = [SqlDbType.SmallInt],
+                [typeof(int)] = [SqlDbType.Int],
+                [typeof(long)] = [SqlDbType.BigInt],
+                [typeof(byte[])] = [SqlDbType.VarBinary, SqlDbType.Binary, SqlDbType.Timestamp],
+                [typeof(bool)] = [SqlDbType.Bit],
+                [typeof(DateTime)] = [SqlDbType.DateTime2, SqlDbType.Date, SqlDbType.DateTime, SqlDbType.SmallDateTime],
+                [typeof(DateTimeOffset)] = [SqlDbType.DateTimeOffset],
+                [typeof(decimal)] = [SqlDbType.Decimal, SqlDbType.Money, SqlDbType.SmallMoney],
+                [typeof(float)] = [SqlDbType.Real],
+                [typeof(double)] = [SqlDbType.Float],
+                [typeof(TimeSpan)] = [SqlDbType.Time],
+                [typeof(object)] = [SqlDbType.Variant],
+                [typeof(TimeSpan)] = [SqlDbType.Time],
+                [typeof(Guid)] = [SqlDbType.UniqueIdentifier]
+            };
+        }
 
         public static Type ToClrType(SqlDbType sqlType)
         {
