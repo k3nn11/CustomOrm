@@ -5,7 +5,7 @@ using ORM.Services;
 using System.Data.Common;
 namespace ORM.IO
 {
-    public class TableReader<T> where T : IEntity
+    public class TableReader<T>
     {
         public TableReader(TableManager<T> tableManager) 
         { 

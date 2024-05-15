@@ -8,7 +8,7 @@ using System.Text;
 
 namespace ORM.IO
 {
-    public class TableWriter<T> where T : IEntity
+    public class TableWriter<T>
     {
 
         public TableWriter(TableManager<T> tableManager)
@@ -74,7 +74,7 @@ namespace ORM.IO
             return command.ExecuteNonQuery();
         }
         // to do 
-        // refactor and check line 94
+        // refactor to shorten method
         public int Update(IEnumerable<T> entities)
         {
             if (entities.Count() == 0)
