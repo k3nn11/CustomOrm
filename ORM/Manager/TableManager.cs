@@ -1,12 +1,10 @@
 ﻿using Microsoft.Data.SqlClient;
-using ORM.BaseClass;
 using ORM.Context;
 using ORM.CustomAttribute;
 using ORM.Expressions;
 using ORM.IO;
 using ORM.Manager;
 using ORM.Services;
-using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -15,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace ORM.Schema
 {
-    public class TableManager<T> :IDbSet<T>, ITable where T : IEntity
+    public class TableManager<T> :IDbSet<T>, ITable
     {
         public readonly Type _type = typeof(T);
 
@@ -158,7 +156,15 @@ namespace ORM.Schema
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
                 sqlScript.AppendFormat("\n\t[{0}]", dataTable.Columns[i].ColumnName);
-                sqlScript.Append(TypeConvertion.ToSqlDbType(dataTable.Columns[i].DataType).ToString());
+                var dataType = dataTable.Columns[i].DataType;
+                var sqlDbType = TypeConvertion.GetDbType(dataType);
+                sqlScript.Append(sqlDbType.ToString());
+
+                if (sqlDbType == SqlDbType.VarChar || sqlDbType == SqlDbType.NVarChar || sqlDbType == SqlDbType.Char || sqlDbType == SqlDbType.NChar)
+                {
+                    int size = GetColumnSize(dataTable.Columns[i]);
+                    sqlScript.AppendFormat("({0})", size);
+                }
 
                 if (dataTable.Columns[i].AutoIncrement)
                 {
@@ -173,7 +179,6 @@ namespace ORM.Schema
                 }
 
                 sqlScript.Append(',');
-
             }
             if (dataTable.PrimaryKey.Length > 0)
             {
@@ -234,7 +239,7 @@ namespace ORM.Schema
                     {
                         var type = modelColumns[newIndex].GetType();
                         sqlScript.AppendFormat("ALTER TABLE {0} ADD {1} ", tableName, modelColumns[newIndex]);
-                        sqlScript.Append(TypeConvertion.ToSqlDbType(type).ToString());
+                        sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns.Insert(currentIndex, modelColumns[newIndex].ToString());
                         currentIndex++;
@@ -243,7 +248,7 @@ namespace ORM.Schema
                     {
                         var type = modelColumns[newIndex].GetType();
                         sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} ", tableName, modelColumns[newIndex]);
-                        sqlScript.Append(TypeConvertion.ToSqlDbType(type).ToString());
+                        sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns[currentIndex] = modelColumns[newIndex].ToString();
                         currentIndex++;
@@ -255,7 +260,7 @@ namespace ORM.Schema
             while (newIndex < modelColumns.Count)
             {
                 var type = modelColumns[newIndex].GetType();
-                sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} {2};\n", tableName, modelColumns[newIndex] ,TypeConvertion.ToSqlDbType(type).ToString());
+                sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} {2};\n", tableName, modelColumns[newIndex] ,TypeConvertion.GetDbType(type).ToString());
                 dbColumns.Add(modelColumns[newIndex].ColumnName);
                 newIndex++;
             }
@@ -288,12 +293,12 @@ namespace ORM.Schema
                 DataTable.Columns.Add(DataColumn);
 
                 Attribute[] attributes = Attribute.GetCustomAttributes(prop);
-                AssignDataColumns(prop, attributes);
+                DefineDataColumns(prop, attributes);
             }
             return DataTable;
         }
 
-        private void AssignDataColumns(PropertyInfo prop, Attribute[] attributes)
+        private void DefineDataColumns(PropertyInfo prop, Attribute[] attributes)
         {
             if (attributes.Length > 0)
             {
@@ -367,6 +372,21 @@ namespace ORM.Schema
                 columns.Add(row.ToString());
             }
             return columns;
+        }
+
+        private static int GetColumnSize(DataColumn column)
+        {
+            int defaultSize = 50;
+
+            if (column.MaxLength > 0)
+            {
+                return column.MaxLength;
+            }
+            else
+            {
+                // Add logic to handle other types of columns.
+                return defaultSize;
+            }
         }
 
         //private bool IsTableExist()
