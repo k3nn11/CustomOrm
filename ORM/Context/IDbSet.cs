@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace ORM.Context
 {
-    public interface IDbSet<T> where T : IEntity
+    public interface IDbSet<T>
     {
         public IEnumerable<T> Select();
 
