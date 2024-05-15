@@ -136,12 +136,11 @@ namespace ORM.Schema
                 {
                     while (dr.Read())
                     {
+                        var str = dr[index].ToString();
                         if (dr[index].ToString() == name)
                         {
                             return true;
                         }
-
-                        index++;
                     }
                 }
             }
@@ -152,7 +151,6 @@ namespace ORM.Schema
         {
             using (var conn = Provider.Connection)
             {
-                conn.Open();
                 DataTable dTable = conn.GetSchema("TABLES",
                                new string[] { null, null, tableName });
                 return dTable.Rows.Count > 0;
