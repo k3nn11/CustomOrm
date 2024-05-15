@@ -26,6 +26,11 @@ namespace ORM.ConnectionFactory
             return new SqlCommand(string.Empty, Connection);
         }
 
+        public SqlCommand CreateSqlCommand(string command)
+        {
+            return new SqlCommand(command, Connection);
+        }
+
         public int NonQuery(string query)
         {
             using (var command = new SqlCommand(query, Connection))
