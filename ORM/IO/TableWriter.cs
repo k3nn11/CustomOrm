@@ -1,5 +1,4 @@
 ﻿using Microsoft.Data.SqlClient;
-using ORM.BaseClass;
 using ORM.Exceptions;
 using ORM.Schema;
 using ORM.Services;
@@ -70,7 +69,7 @@ namespace ORM.IO
             queryContent = queryContent.Remove(queryContent.Length - 1, 1);
 
             var properties = string.Join(',', TableManager.Properties.Select(x => x.Name));
-            command.CommandText = string.Format(SQLQueries.INSERT, TableManager._type.Name, properties, string.Format("{0}", queryContent.ToString()));
+            command.CommandText = string.Format(SQLQueries.INSERT, TableManager.Name, properties, string.Format("{0}", queryContent.ToString()));
             return command.ExecuteNonQuery();
         }
         // to do 
@@ -83,7 +82,7 @@ namespace ORM.IO
             }
             if (TableManager.UpdateProperties.Length == 0)
             {
-                throw new InvalidMappingException("Unable to update elements. " +TableManager._type.Name + " has no update property.");
+                throw new InvalidMappingException("Unable to update elements. " +TableManager.Name + " has no update property.");
             }
 
             using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand())
@@ -108,7 +107,7 @@ namespace ORM.IO
                     var text = string.Format("{0}", string.Join(",", sb.ToString()));
 
                     Object? primary = TableManager.PrimaryProperty.GetValue(entity);
-                    command.CommandText += string.Format(SQLQueries.UPDATE, TableManager._type.Name, text, TableManager.PrimaryProperty.Name, primary.ToString()) + ";";
+                    command.CommandText += string.Format(SQLQueries.UPDATE, TableManager.Name, text, TableManager.PrimaryProperty.Name, primary.ToString()) + ";";
 
                     i++;
                 }
@@ -122,7 +121,7 @@ namespace ORM.IO
         {
             var uids = entities.Select(x => TableManager.PrimaryProperty.GetValue(x)).ToArray();
             string queryContent = string.Join(",", uids);
-            return TableManager.Database.Provider.NonQuery(string.Format(SQLQueries.DELETE_IN, TableManager._type.Name, queryContent));
+            return TableManager.Database.Provider.NonQuery(string.Format(SQLQueries.DELETE_IN, TableManager.Name, queryContent));
         }
     }
 }

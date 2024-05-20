@@ -27,7 +27,7 @@ namespace ORM.IO
                 {
                     if (reader.FieldCount != TableManager.Properties.Length)
                     {
-                        throw new InvalidMappingException("The mapping of table '" + TableManager._type.Name + "' is not consistent with the SQL structure.");
+                        throw new InvalidMappingException("The mapping of table '" + TableManager.Name + "' is not consistent with the SQL structure.");
                     }
                     while (reader.Read())
                     {
