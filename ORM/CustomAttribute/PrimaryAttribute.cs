@@ -1,7 +1,12 @@
 ﻿namespace ORM.CustomAttribute
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-    internal class PrimaryAttribute : Attribute
+    public class PrimaryAttribute : Attribute
     {
+        public bool IsAutoIncrement { get; }
+        public PrimaryAttribute() 
+        { 
+            IsAutoIncrement = true;
+        }
     }
 }
