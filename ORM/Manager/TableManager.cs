@@ -1,7 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
 using ORM.Context;
 using ORM.CustomAttribute;
+using ORM.Exceptions;
 using ORM.Expressions;
+using ORM.Extension;
 using ORM.IO;
 using ORM.Manager;
 using ORM.Services;
@@ -15,7 +17,7 @@ namespace ORM.Schema
 {
     public class TableManager<T> :IDbSet<T>, ITable
     {
-        public readonly Type _type = typeof(T);
+        private readonly Type _type = typeof(T);
 
         public PropertyInfo[] Properties { get; private set; }
 
@@ -41,7 +43,7 @@ namespace ORM.Schema
             Database.Provider.Connect();
             Reader = new TableReader<T>(this);
             Writer = new TableWriter<T>(this);
-
+            Build();
         }
 
         public void CreateTable()
@@ -65,7 +67,7 @@ namespace ORM.Schema
             }
         }
 
-        public void UpdateDbSchema()
+        public void UpdateTable()
         {
             string? command = UpdateSchemaScript();
 
@@ -88,7 +90,7 @@ namespace ORM.Schema
 
         public IEnumerable<T> Select()
         {
-            return Reader.Read(string.Format(SQLQueries.SELECT, _type.Name));
+            return Reader.Read(string.Format(SQLQueries.SELECT, Name));
         }
 
         public IEnumerable<T> Select(Expression<Func<T, bool>> expression)
@@ -102,6 +104,7 @@ namespace ORM.Schema
         {
             Writer.Insert([entity]);
         }
+
 
         public void Insert(IEnumerable<T> entities)
         {
@@ -121,7 +124,7 @@ namespace ORM.Schema
         public int Delete(T entity)
         {
             var primaryKey = PrimaryProperty.GetValue(entity);
-            string query = string.Format(SQLQueries.DELETE, _type.Name) + string.Format(SQLQueries.WHERE_CLAUSE, PrimaryProperty.Name + "=" + primaryKey);
+            string query = string.Format(SQLQueries.DELETE, Name) + string.Format(SQLQueries.WHERE_CLAUSE, PrimaryProperty.Name + "=" + primaryKey);
             return Database.Provider.NonQuery(query);
         }
 
@@ -129,7 +132,7 @@ namespace ORM.Schema
         {
             QueryBuilder builder = new QueryBuilder();
             builder.Translate(expression);
-            string query = string.Format(SQLQueries.DELETE, _type.Name) + string.Format(SQLQueries.WHERE_CLAUSE, builder.WhereClause);
+            string query = string.Format(SQLQueries.DELETE, Name) + string.Format(SQLQueries.WHERE_CLAUSE, builder.WhereClause);
             return Database.Provider.NonQuery(query);
         }
 
@@ -140,7 +143,7 @@ namespace ORM.Schema
 
         public int DeleteAll()
         {
-            return Database.Provider.NonQuery(string.Format(SQLQueries.DELETE, _type.Name));
+            return Database.Provider.NonQuery(string.Format(SQLQueries.DELETE, Name));
         }
 
         private string? CreateShemaScript()
@@ -205,14 +208,10 @@ namespace ORM.Schema
             return sqlScript.ToString();
         }
 
-       // to do 
-       // rewrite naming of method.
-       // Forget implementation word
         private string UpdateSchemaScript()
         {
-            string tableName = _type.Name;
             StringBuilder sqlScript = new();
-            List<string?> dbColumns = GetDbColumns(tableName);
+            List<string?> dbColumns = GetDbColumns(Name);
             DataColumnCollection? modelColumns = Build().Columns;
             var currentIndex = 0;
             var newIndex = 0;
@@ -232,13 +231,13 @@ namespace ORM.Schema
                 {
                     if (currentIndex + 1 < dbColumns.Count && dbColumns[currentIndex + 1] == modelColumns[newIndex].ColumnName)
                     {
-                        sqlScript.AppendFormat("ALTER TABLE {0} DROP COLUMN {1};\n", tableName, dbColumns[currentIndex]);
+                        sqlScript.AppendFormat("ALTER TABLE {0} DROP COLUMN {1};\n", Name, dbColumns[currentIndex]);
                         dbColumns.RemoveAt(currentIndex);
                     }
                     else if (newIndex + 1 < modelColumns.Count && dbColumns[currentIndex] == modelColumns[newIndex + 1].ColumnName)
                     {
                         var type = modelColumns[newIndex].GetType();
-                        sqlScript.AppendFormat("ALTER TABLE {0} ADD {1} ", tableName, modelColumns[newIndex]);
+                        sqlScript.AppendFormat("ALTER TABLE {0} ADD {1} ", Name, modelColumns[newIndex]);
                         sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns.Insert(currentIndex, modelColumns[newIndex].ToString());
@@ -247,7 +246,7 @@ namespace ORM.Schema
                     else
                     {
                         var type = modelColumns[newIndex].GetType();
-                        sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} ", tableName, modelColumns[newIndex]);
+                        sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} ", Name, modelColumns[newIndex]);
                         sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns[currentIndex] = modelColumns[newIndex].ToString();
@@ -260,7 +259,7 @@ namespace ORM.Schema
             while (newIndex < modelColumns.Count)
             {
                 var type = modelColumns[newIndex].GetType();
-                sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} {2};\n", tableName, modelColumns[newIndex] ,TypeConvertion.GetDbType(type).ToString());
+                sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} {2};\n", Name, modelColumns[newIndex] ,TypeConvertion.GetDbType(type).ToString());
                 dbColumns.Add(modelColumns[newIndex].ColumnName);
                 newIndex++;
             }
@@ -268,12 +267,26 @@ namespace ORM.Schema
         }
         // to do 
         // make method shorter.
+        private void AssignProperty()
+        {
+            Properties = _type.GetProperties();
+            UpdateProperties = Properties.Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
+            var primaryProperties = Properties.Where(x => x.HasAttribute<PrimaryAttribute>()).ToArray();
+
+            if (primaryProperties.Length != 1)
+            {
+                throw new InvalidMappingException("Entity " + _type.Name + " must own one primary property.");
+
+            }
+
+            PrimaryProperty = primaryProperties.First();
+        }
+
         private DataTable? Build()
         {
+            AssignProperty();
             DataTable = new();
             var tableAttribute = (TableAttribute?)Attribute.GetCustomAttribute(_type, typeof(TableAttribute));
-             Properties = _type.GetProperties();
-            UpdateProperties = _type.GetProperties().Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
 
             if (tableAttribute is not null)
             {
@@ -320,11 +333,11 @@ namespace ORM.Schema
                     if (attr is PrimaryAttribute pk)
                     {
                         DataTable.PrimaryKey = [DataColumn];
+                        DataColumn.AutoIncrement = pk.IsAutoIncrement;
                         DataColumn.DataType = prop.PropertyType;
                         DataColumn.ColumnName = prop.Name;
                         DataColumn.DataType = prop.PropertyType;
                         DataTable.PrimaryKey = [DataColumn];
-                        PrimaryProperty = prop;
                     }
                     //if(attr is ForeignKeyAttribute foreign)
                     //{
@@ -388,17 +401,5 @@ namespace ORM.Schema
                 return defaultSize;
             }
         }
-
-        //private bool IsTableExist()
-        //{
-        //    string tableName = _type.Name;
-        //    using (_connection)
-        //    {
-        //        _connection.Open();
-        //        DataTable dTable = _connection.GetSchema("TABLES",
-        //                       new string[] { null, null, tableName });
-        //        return dTable.Rows.Count > 0;
-        //    }
-        //}
     }
 }
