@@ -53,10 +53,22 @@ namespace ORM.ConnectionFactory
             {
                 throw new InvalidConnectionException("Connection is not available");
             }
-            if (Connection.State == ConnectionState.Closed)
+            try
             {
-                Connection.Open();
+                if (Connection.State == ConnectionState.Closed)
+                {
+                    Connection.Open();
+                }
             }
+            catch (SqlException e)
+            {
+
+                Console.WriteLine(e.Message);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }         
         }
     }
 }
