@@ -164,14 +164,15 @@ namespace ORM.Schema
 
                 if (dataTable.Columns[i].AutoIncrement)
                 {
-                    sqlScript.AppendFormat(" IDENTITY({0},{1})",
-                    dataTable.Columns[i].AutoIncrementSeed = 1,
-                    dataTable.Columns[i].AutoIncrementStep);
+                    sqlScript.AppendFormat(" {0}",
+                    string.Format(SQLQueries.IDENTITY,
+                    dataTable.Columns[i].AutoIncrementSeed,
+                    dataTable.Columns[i].AutoIncrementStep));
                 }
 
                 if (dataTable.Columns[i].AllowDBNull)
                 {
-                    sqlScript.Append(" NOT NULL");
+                    sqlScript.AppendFormat(" {0}", SQLQueries.NOT_NULL);
                 }
 
                 sqlScript.Append(',');
@@ -181,7 +182,9 @@ namespace ORM.Schema
                 StringBuilder primaryKeySql = new StringBuilder();
 
                 primaryKeySql.AppendFormat("\n\tCONSTRAINT PK_{0} PRIMARY KEY (", dataTable.TableName);
-
+                // to do
+                // Test using the Gettype.Name code to get name of the primary key.
+                // refactor to use sqlqueries.
                 for (int j = 0; j < dataTable.PrimaryKey.Length; j++)
                 {
                     primaryKeySql.AppendFormat("{0},", dataTable.PrimaryKey[j].ColumnName);
@@ -189,8 +192,8 @@ namespace ORM.Schema
 
                 primaryKeySql.Remove(primaryKeySql.Length - 1, 1);
                 primaryKeySql.Append(')');
-
                 sqlScript.Append(primaryKeySql);
+                var str = sqlScript.ToString();
             }
             else
             {
@@ -224,13 +227,13 @@ namespace ORM.Schema
                 {
                     if (currentIndex + 1 < dbColumns.Count && dbColumns[currentIndex + 1] == modelColumns[newIndex].ColumnName)
                     {
-                        sqlScript.AppendFormat("ALTER TABLE {0} DROP COLUMN {1};\n", Name, dbColumns[currentIndex]);
+                        sqlScript.AppendFormat("{0};\n",SQLQueries.DROPCOLUMN, Name, dbColumns[currentIndex]);
                         dbColumns.RemoveAt(currentIndex);
                     }
                     else if (newIndex + 1 < modelColumns.Count && dbColumns[currentIndex] == modelColumns[newIndex + 1].ColumnName)
                     {
                         var type = modelColumns[newIndex].GetType();
-                        sqlScript.AppendFormat("ALTER TABLE {0} ADD {1} ", Name, modelColumns[newIndex]);
+                        sqlScript.AppendFormat("{0};",SQLQueries.ADDCOLUMN, Name, modelColumns[newIndex]);
                         sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns.Insert(currentIndex, modelColumns[newIndex].ToString());
@@ -239,7 +242,7 @@ namespace ORM.Schema
                     else
                     {
                         var type = modelColumns[newIndex].GetType();
-                        sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} ", Name, modelColumns[newIndex]);
+                        sqlScript.AppendFormat("{0};",SQLQueries.ADDCOLUMN, Name, modelColumns[newIndex]);
                         sqlScript.Append(TypeConvertion.GetDbType(type).ToString());
                         sqlScript.Append(';');
                         dbColumns[currentIndex] = modelColumns[newIndex].ToString();
@@ -252,7 +255,7 @@ namespace ORM.Schema
             while (newIndex < modelColumns.Count)
             {
                 var type = modelColumns[newIndex].GetType();
-                sqlScript.AppendFormat("ALTER TABLE {0} ADD COLUMN {1} {2};\n", Name, modelColumns[newIndex] ,TypeConvertion.GetDbType(type).ToString());
+                sqlScript.AppendFormat("{0} {1};\n",SQLQueries.ADDCOLUMN, Name, modelColumns[newIndex] ,TypeConvertion.GetDbType(type).ToString());
                 dbColumns.Add(modelColumns[newIndex].ColumnName);
                 newIndex++;
             }
@@ -293,14 +296,13 @@ namespace ORM.Schema
             Name = DataTable.TableName;
 
             foreach (var prop in Properties)
-            {
-                
+            {                
                 DataColumn = new();
                 DataTable.Columns.Add(DataColumn);
-
                 Attribute[] attributes = Attribute.GetCustomAttributes(prop);
                 DefineDataColumns(prop, attributes);
             }
+
             return DataTable;
         }
 
@@ -322,10 +324,11 @@ namespace ORM.Schema
                         }
                     }
 
-                    if(attr is AutoIncrement)
+                    if(attr is AutoIncrement increment)
                     {
                         DataColumn.AutoIncrement = true;
-                        
+                        DataColumn.AutoIncrementSeed = increment.AutoIncrementSeed;
+                        DataColumn.AutoIncrementStep = increment.AutoIncrementStep;                
                     }
 
                     if (attr is PrimaryAttribute)
