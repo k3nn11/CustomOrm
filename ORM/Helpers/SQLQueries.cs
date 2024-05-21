@@ -25,12 +25,21 @@ namespace ORM.Services
 
         public const string MAX = "SELECT MAX(`{1}`) FROM `{0}`";
 
-        public const string PRIMARY_KEY = "PRIMARY KEY(`{0}`)";
+        public const string PRIMARY_KEY = "PRIMARY KEY({0})";
 
-        public const string AUTO_INCREMENT = "AUTO_INCREMENT";
+        public const string IDENTITY = "IDENTITY({0},{1})";
 
         public const string NOT_NULL = "NOT NULL";
 
         public const string DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+        public const string ADDCOLUMN = "ALTER TABLE {0} ADD COLUMN {1}";
+
+        public const string DROPCOLUMN = "ALTER TABLE {0} DROP COLUMN {1}";
+
+        public const string IDENTITY_INSERT_ON = "SET IDENTITY_INSERT [{0}] ON";
+
+        public const string IDENTITY_INSERT_OFF = "SET IDENTITY_INSERT [{0}] OFF";
+
     }
 }
