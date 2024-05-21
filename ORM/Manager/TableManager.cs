@@ -33,14 +33,13 @@ namespace ORM.Schema
 
         private TableWriter<T> Writer { get; set; }
 
-        public DataBaseManager Database {  get; private set; }
+        public DataBaseManager Database { get; private set; }
 
         public string Name { get; private set; }
 
         public TableManager(DataBaseManager dataBase)
         {
             Database = dataBase;
-            Database.Provider.Connect();
             Reader = new TableReader<T>(this);
             Writer = new TableWriter<T>(this);
             Build();
@@ -52,10 +51,7 @@ namespace ORM.Schema
 
             try
             {
-                using (SqlCommand createCommand = Database.Provider.CreateSqlCommand())
-                {
-                    Database.Provider.NonQuery(command);
-                }      
+                Database.Provider.NonQuery(command);
             }
             catch (SqlException e)
             {
@@ -73,10 +69,7 @@ namespace ORM.Schema
 
             try
             {
-                using (SqlCommand updateCommand = Database.Provider.CreateSqlCommand())
-                {
-                    Database.Provider.NonQuery(command);
-                }
+                Database.Provider.NonQuery(command);
             }
             catch (SqlException e)
             {
@@ -321,7 +314,6 @@ namespace ORM.Schema
                     {
                         DataColumn.ColumnName = columnAttr.ColumnName;
                         DataColumn.DataType = columnAttr.DataType;
-                        DataColumn.AutoIncrement = columnAttr.AutoIncrement;
                         DataColumn.AllowDBNull = columnAttr.AllowNullable;
 
                         if(columnAttr.MaxLength != 0)
@@ -330,14 +322,17 @@ namespace ORM.Schema
                         }
                     }
 
-                    if (attr is PrimaryAttribute pk)
+                    if(attr is AutoIncrement)
+                    {
+                        DataColumn.AutoIncrement = true;
+                        
+                    }
+
+                    if (attr is PrimaryAttribute)
                     {
                         DataTable.PrimaryKey = [DataColumn];
-                        DataColumn.AutoIncrement = pk.IsAutoIncrement;
-                        DataColumn.DataType = prop.PropertyType;
                         DataColumn.ColumnName = prop.Name;
                         DataColumn.DataType = prop.PropertyType;
-                        DataTable.PrimaryKey = [DataColumn];
                     }
                     //if(attr is ForeignKeyAttribute foreign)
                     //{
