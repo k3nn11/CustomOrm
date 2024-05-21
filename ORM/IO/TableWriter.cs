@@ -24,53 +24,55 @@ namespace ORM.IO
                 return 0;
             }
 
-            DbCommand command = TableManager.Database.Provider.CreateSqlCommand();
-
             StringBuilder queryContent = new StringBuilder();
 
-            int id = 0;
-
-            foreach (var entity in entities)
+            using (SqlCommand command = TableManager.Database.Provider.CreateSqlCommand())
             {
-                queryContent.Append('(');
 
-                string prefix = "";
+                int id = 0;
 
-                foreach (var property in TableManager.Properties)
+                foreach (var entity in entities)
                 {
-                    queryContent.Append(prefix);
-                    prefix = ",";
+                    queryContent.Append('(');
 
-                    object? value = property.GetValue(entity);
+                    string prefix = "";
 
-                    if (value is byte[])
+                    foreach (var property in TableManager.Properties)
                     {
-                        queryContent.Append(string.Format(TableManager.Database.Provider.ParameterPrefix + "{0}{1}", property.Name, id));
-                        string name = TableManager.Database.Provider.ParameterPrefix + property.Name + id;
-                        SqlParameter parameter = new();
+                        queryContent.Append(prefix);
+                        prefix = ",";
+
+                        object? value = property.GetValue(entity);
+
+                        if (value is byte[])
                         {
-                            parameter.ParameterName = name;
-                            parameter.Value = value;
-                        } 
-                        command.Parameters.Add(parameter);
+                            queryContent.Append(string.Format(TableManager.Database.Provider.ParameterPrefix + "{0}{1}", property.Name, id));
+                            string name = TableManager.Database.Provider.ParameterPrefix + property.Name + id;
+                            SqlParameter parameter = new();
+                            {
+                                parameter.ParameterName = name;
+                                parameter.Value = value;
+                            }
+                            command.Parameters.Add(parameter);
+                        }
+                        else
+                        {
+                            queryContent.Append("'" + value.ToString() + "'");
+                        }
                     }
-                    else
-                    {
-                        queryContent.Append("'" + value.ToString() + "'");
-                    }
+
+                    queryContent.Append(')');
+                    queryContent.Append(',');
+
+                    id++;
                 }
 
-                queryContent.Append(')');
-                queryContent.Append(',');
+                queryContent = queryContent.Remove(queryContent.Length - 1, 1);
 
-                id++;
+                var properties = string.Join(',', TableManager.Properties.Select(x => x.Name));
+                command.CommandText = string.Format(SQLQueries.INSERT, TableManager.Name, properties, string.Format("{0}", queryContent.ToString()));
+                return TableManager.Database.Provider.NonQuery(command.CommandText);
             }
-
-            queryContent = queryContent.Remove(queryContent.Length - 1, 1);
-
-            var properties = string.Join(',', TableManager.Properties.Select(x => x.Name));
-            command.CommandText = string.Format(SQLQueries.INSERT, TableManager.Name, properties, string.Format("{0}", queryContent.ToString()));
-            return command.ExecuteNonQuery();
         }
         // to do 
         // refactor to shorten method
@@ -85,7 +87,7 @@ namespace ORM.IO
                 throw new InvalidMappingException("Unable to update elements. " +TableManager.Name + " has no update property.");
             }
 
-            using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand())
+            using (SqlCommand command = TableManager.Database.Provider.CreateSqlCommand())
             {
                 int i = 0;
 
@@ -111,8 +113,8 @@ namespace ORM.IO
 
                     i++;
                 }
-
-                return command.ExecuteNonQuery();
+                
+                return TableManager.Database.Provider.NonQuery(command.CommandText);
             }
 
         }
