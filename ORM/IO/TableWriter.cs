@@ -2,7 +2,6 @@
 using ORM.Exceptions;
 using ORM.Schema;
 using ORM.Services;
-using System.Data.Common;
 using System.Text;
 
 namespace ORM.IO
@@ -37,7 +36,7 @@ namespace ORM.IO
 
                     string prefix = "";
 
-                    foreach (var property in TableManager.Properties)
+                    foreach (var property in TableManager.UpdateProperties)
                     {
                         queryContent.Append(prefix);
                         prefix = ",";
@@ -69,7 +68,7 @@ namespace ORM.IO
 
                 queryContent = queryContent.Remove(queryContent.Length - 1, 1);
 
-                var properties = string.Join(',', TableManager.Properties.Select(x => x.Name));
+                var properties = string.Join(',', TableManager.UpdateProperties.Select(x => x.Name));
                 command.CommandText = string.Format(SQLQueries.INSERT, TableManager.Name, properties, string.Format("{0}", queryContent.ToString()));
                 return TableManager.Database.Provider.NonQuery(command.CommandText);
             }
