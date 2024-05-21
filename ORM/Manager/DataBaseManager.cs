@@ -12,12 +12,11 @@ namespace ORM.Schema
     {
         private readonly string _dBName;
 
-
         private Dictionary<Type, ITable> _tables;
 
         private Assembly _entityAssembly;
 
-        public IProvider Provider {  get; private set; }
+        public IProvider Provider { get; private set; }
 
 
         public DataBaseManager(string dBName, IProvider provider, Assembly entityAssembly)
@@ -27,6 +26,7 @@ namespace ORM.Schema
             _dBName = dBName;
             Provider.Connect();
             Build();
+            CreateDatabase();
             CreateAllTables();
         }
 
@@ -44,11 +44,9 @@ namespace ORM.Schema
 
         private void CreateAllTables()
         {
-            CreateDatabase();
-
             foreach(var table in _tables.Values)
             {
-                if(IsTableExist(table.Name))
+                if (IsTableExist(table.Name))
                 {
                     continue;
                 }
@@ -81,6 +79,8 @@ namespace ORM.Schema
             }
         }
 
+        // Delete Table with key
+        // Delete table generically also.
         public void DropTable(string tableName)
         {
             if(!_tables.Values.Any() || string.IsNullOrEmpty(tableName))
@@ -93,7 +93,6 @@ namespace ORM.Schema
             if(IsExist)
             {
                 var cmd = $"DROP TABLE {tableName}";
-                SqlCommand command = Provider.CreateSqlCommand();
                 Provider.NonQuery(cmd);
             }
         }
@@ -104,12 +103,7 @@ namespace ORM.Schema
            
             try
             {
-               using (SqlCommand command = Provider.CreateSqlCommand() )
-                {
-                    command.CommandText = cmd;
-                    command.CommandType = CommandType.Text;
-                    command.ExecuteNonQuery();
-                }
+                Provider.NonQuery(cmd);
             }
             catch (SqlException e)
             {
@@ -149,12 +143,10 @@ namespace ORM.Schema
 
         private bool IsTableExist(string tableName)
         {
-            using (var conn = Provider.Connection)
-            {
-                DataTable dTable = conn.GetSchema("TABLES",
+            DataTable dTable = Provider.Connection.GetSchema("TABLES",
                                new string[] { null, null, tableName });
-                return dTable.Rows.Count > 0;
-            }
+            return dTable.Rows.Count > 0;
+
         }
     }
 }
