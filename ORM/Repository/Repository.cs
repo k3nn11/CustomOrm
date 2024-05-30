@@ -6,7 +6,7 @@ namespace ORM.Repository
 {
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : IEntity
     {
-        private IDbSet<TEntity> _dbSet;
+        private readonly IDbSet<TEntity> _dbSet;
 
         public Repository(DBContext context) 
         { 
