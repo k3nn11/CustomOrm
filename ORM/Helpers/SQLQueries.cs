@@ -25,7 +25,7 @@ namespace ORM.Services
 
         public const string MAX = "SELECT MAX(`{1}`) FROM `{0}`";
 
-        public const string PRIMARY_KEY = "PRIMARY KEY({0})";
+        public const string CREATE_TABLE = "CREATE TABLE [{0}]";
 
         public const string IDENTITY = "IDENTITY({0},{1})";
 
@@ -41,5 +41,6 @@ namespace ORM.Services
 
         public const string IDENTITY_INSERT_OFF = "SET IDENTITY_INSERT [{0}] OFF";
 
+        public const string PK_CONSTRAINT = "CONSTRAINT PK_{0} PRIMARY KEY";
     }
 }
