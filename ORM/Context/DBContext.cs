@@ -1,14 +1,19 @@
-﻿using ORM.BaseClass;
+﻿using ORM.Schema;
 
 namespace ORM.Context
 {
-    public class DBContext<T>
+    public class DBContext
     {
-        public DBContext(IDbSet<T> _DbSet)
+        private DataBaseManager _dbManager;
+
+        public DBContext(DataBaseManager dbManager)
         {
-            DbSet = _DbSet;
+            _dbManager = dbManager;
         }
 
-        public IDbSet<T> DbSet { get; private set; }
+        public IDbSet<T> Set<T>()
+        {
+            return (IDbSet<T>)_dbManager.GetTable(typeof(T));
+        }
     }
 }
