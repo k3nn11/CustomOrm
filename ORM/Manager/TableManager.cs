@@ -105,7 +105,7 @@ namespace ORM.Schema
 
         public int Update(T entity)
         {
-            return Writer.Update(new[] { entity });
+            return Writer.Update([entity]);
         }
 
         public int Update(IEnumerable<T> entities)
@@ -146,7 +146,7 @@ namespace ORM.Schema
                 return null;
             }
             StringBuilder sqlScript = new();
-            sqlScript.AppendFormat("CREATE TABLE [{0}] (", dataTable.TableName);
+            sqlScript.AppendFormat("{0} (", string.Format(SQLQueries.CREATE_TABLE, dataTable.TableName));
 
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
@@ -179,11 +179,8 @@ namespace ORM.Schema
             if (dataTable.PrimaryKey.Length > 0)
             {
                 StringBuilder primaryKeySql = new StringBuilder();
-
-                primaryKeySql.AppendFormat("\n\tCONSTRAINT PK_{0} PRIMARY KEY (", dataTable.TableName);
-                // to do
-                // Test using the Gettype.Name code to get name of the primary key.
-                // refactor to use sqlqueries.
+                primaryKeySql.AppendFormat("\n\t{0} (",string.Format(SQLQueries.PK_CONSTRAINT, dataTable.TableName));
+               
                 for (int j = 0; j < dataTable.PrimaryKey.Length; j++)
                 {
                     primaryKeySql.AppendFormat("{0},", dataTable.PrimaryKey[j].ColumnName);
@@ -192,7 +189,6 @@ namespace ORM.Schema
                 primaryKeySql.Remove(primaryKeySql.Length - 1, 1);
                 primaryKeySql.Append(')');
                 sqlScript.Append(primaryKeySql);
-                var str = sqlScript.ToString();
             }
             else
             {
