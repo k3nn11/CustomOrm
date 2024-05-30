@@ -130,7 +130,6 @@ namespace ORM.Schema
                 {
                     while (dr.Read())
                     {
-                        var str = dr[index].ToString();
                         if (dr[index].ToString() == name)
                         {
                             return true;

@@ -98,7 +98,6 @@ namespace ORM.Schema
             Writer.Insert([entity]);
         }
 
-
         public void Insert(IEnumerable<T> entities)
         {
             Writer.Insert(entities);
@@ -266,16 +265,22 @@ namespace ORM.Schema
         private void AssignProperty()
         {
             Properties = _type.GetProperties();
-            UpdateProperties = Properties.Where(x => Attribute.GetCustomAttribute(x, typeof(PrimaryAttribute)) == null).ToArray();
             var primaryProperties = Properties.Where(x => x.HasAttribute<PrimaryAttribute>()).ToArray();
 
             if (primaryProperties.Length != 1)
             {
-                throw new InvalidMappingException("Entity " + _type.Name + " must own one primary property.");
+                string pattern = @"\w*Id\b";
+                Regex rg = new(pattern);
+                primaryProperties = Properties.Where(x => rg.IsMatch(x.Name)).ToArray();
 
+                if(primaryProperties.Length != 1)
+                {
+                    throw new InvalidMappingException("Entity " + _type.Name + " must own one primary property.");
+                }
             }
 
             PrimaryProperty = primaryProperties.First();
+            UpdateProperties = Properties.Where(x => x != PrimaryProperty).ToArray();
         }
 
         private DataTable? Build()
@@ -312,55 +317,66 @@ namespace ORM.Schema
             {
                 foreach (Attribute attr in attributes)
                 {
-                    if (attr is ColumnAttribute columnAttr)
-                    {
-                        DataColumn.ColumnName = columnAttr.ColumnName;
-                        DataColumn.DataType = columnAttr.DataType;
-                        DataColumn.AllowDBNull = columnAttr.AllowNullable;
-
-                        if(columnAttr.MaxLength != 0)
-                        {
-                            DataColumn.MaxLength = columnAttr.MaxLength;
-                        }
-                    }
-
-                    if(attr is AutoIncrement increment)
-                    {
-                        DataColumn.AutoIncrement = true;
-                        DataColumn.AutoIncrementSeed = increment.AutoIncrementSeed;
-                        DataColumn.AutoIncrementStep = increment.AutoIncrementStep;                
-                    }
-
-                    if (attr is PrimaryAttribute)
-                    {
-                        DataTable.PrimaryKey = [DataColumn];
-                        DataColumn.ColumnName = prop.Name;
-                        DataColumn.DataType = prop.PropertyType;
-                    }
-                    //if(attr is ForeignKeyAttribute foreign)
-                    //{
-                    //    ForeignKeyConstraint keyConstraint = new("FK_" + dColumn.ColumnName,  )
-                    //    dtable.Constraints.Add()
-                    //}    
+                    DefineDataColumnWithAttributes(prop, attr);
                 }
             }
             else
             {
-                string pattern = @"\w+Id\b";
-                Regex rg = new(pattern, RegexOptions.IgnoreCase);
-                if (rg.IsMatch(prop.Name))
+                DefineDataColumnWithoutAtrributes(prop);
+            }
+        }
+
+        private void DefineDataColumnWithAttributes(PropertyInfo prop, Attribute attr)
+        {
+            if (attr is ColumnAttribute columnAttr)
+            {
+                DataColumn.ColumnName = columnAttr.ColumnName;
+                DataColumn.DataType = columnAttr.DataType;
+                DataColumn.AllowDBNull = columnAttr.AllowNullable;
+
+                if (columnAttr.MaxLength != 0)
                 {
-                    DataTable.PrimaryKey = [DataColumn];
-                    DataColumn.ColumnName = prop.Name;
-                    DataColumn.DataType = prop.PropertyType;
+                    DataColumn.MaxLength = columnAttr.MaxLength;
                 }
-                else
-                {
-                    DataColumn.ColumnName = prop.Name;
-                    DataColumn.DataType = prop.PropertyType;
-                    DataColumn.AutoIncrement = false;
-                    DataColumn.AllowDBNull = Nullable.GetUnderlyingType(prop.PropertyType) != null;
-                }
+            }
+
+            if (attr is AutoIncrement increment)
+            {
+                DataColumn.AutoIncrement = true;
+                DataColumn.AutoIncrementSeed = increment.AutoIncrementSeed;
+                DataColumn.AutoIncrementStep = increment.AutoIncrementStep;
+            }
+
+            if (attr is PrimaryAttribute)
+            {
+                DataTable.PrimaryKey = [DataColumn];
+                DataColumn.ColumnName = prop.Name;
+                DataColumn.DataType = prop.PropertyType;
+            }
+            //if(attr is ForeignKeyAttribute foreign)
+            //{
+            //    ForeignKeyConstraint keyConstraint = new("FK_" + dColumn.ColumnName,  )
+            //    dtable.Constraints.Add()
+            //}    
+        }
+
+        private void DefineDataColumnWithoutAtrributes(PropertyInfo prop)
+        {
+            if (prop == PrimaryProperty)
+            {
+                DataTable.PrimaryKey = [DataColumn];
+                DataColumn.ColumnName = prop.Name;
+                DataColumn.DataType = prop.PropertyType;
+                DataColumn.AutoIncrement = true;
+                DataColumn.AutoIncrementSeed = 1;
+                DataColumn.AutoIncrementStep = 1;
+            }
+            else
+            {
+                DataColumn.ColumnName = prop.Name;
+                DataColumn.DataType = prop.PropertyType;
+                DataColumn.AutoIncrement = false;
+                DataColumn.AllowDBNull = Nullable.GetUnderlyingType(prop.PropertyType) != null;
             }
         }
 

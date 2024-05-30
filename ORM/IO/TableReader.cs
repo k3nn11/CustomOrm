@@ -1,8 +1,8 @@
-﻿using ORM.BaseClass;
-using ORM.Exceptions;
+﻿using ORM.Exceptions;
 using ORM.Schema;
 using ORM.Services;
-using System.Data.Common;
+using Microsoft.Data.SqlClient;
+
 namespace ORM.IO
 {
     public class TableReader<T>
@@ -20,10 +20,10 @@ namespace ORM.IO
         {
             List<T> results = [];
 
-            using (DbCommand command = TableManager.Database.Provider.CreateSqlCommand())
+            using (SqlCommand command = TableManager.Database.Provider.CreateSqlCommand())
             {
-
-                using (DbDataReader reader = command.ExecuteReader())
+                command.CommandText = query;
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
                     if (reader.FieldCount != TableManager.Properties.Length)
                     {
@@ -35,7 +35,8 @@ namespace ORM.IO
 
                         for (var i = 0; i < reader.FieldCount; i++)
                         {
-                            obj[i] = TypeConvertion.ToClrType((System.Data.SqlDbType)reader[i]);
+                            var type = reader[i];
+                            obj[i] =  reader[i];
                         }
 
                         T entity = Activator.CreateInstance<T>();
@@ -46,6 +47,7 @@ namespace ORM.IO
                         }
 
                         results.Add(entity);
+                   
                     }
                 }
             }
