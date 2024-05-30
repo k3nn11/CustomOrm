@@ -5,9 +5,9 @@ namespace ORM.Services
      // rename the folder from services to Helpers.
     public class SQLQueries
     {
-        public const string COUNT = "SELECT COUNT(*) FROM `{0}`";
+        public const string COUNT = "SELECT COUNT(*) FROM [{0}]";
 
-        public const string SELECT = "SELECT * FROM `{0}`";
+        public const string SELECT = "SELECT * FROM [{0}]";
 
         public const string WHERE_CLAUSE = " where {0}";
 
