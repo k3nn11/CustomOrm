@@ -1,15 +1,16 @@
 ﻿using ORM.BaseClass;
 using ORM.Context;
+using System.Linq.Expressions;
 
 namespace ORM.Repository
 {
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : IEntity
     {
-        private readonly DBContext<TEntity> _context;
+        private IDbSet<TEntity> _dbSet;
 
-        public Repository(DBContext<TEntity> context) 
+        public Repository(DBContext context) 
         { 
-            _context = context;
+            _dbSet = context.Set<TEntity>();
         }
 
         public void Add(TEntity entity)
@@ -19,7 +20,7 @@ namespace ORM.Repository
                 throw new ArgumentNullException("Entity is null");
             }
 
-           _context.DbSet.Insert(entity);
+           _dbSet.Insert(entity);
         }
 
         public void AddRange(IEnumerable<TEntity> entities)
@@ -29,12 +30,12 @@ namespace ORM.Repository
                 throw new ArgumentException("Entities are null");
             }
 
-            _context.DbSet.Insert(entities);
+            _dbSet.Insert(entities);
         }
 
         public IEnumerable<TEntity> GetAll()
         {
-            return _context.DbSet.Select();
+            return _dbSet.Select();
         }
 
         public TEntity? GetById(int id)
@@ -43,18 +44,20 @@ namespace ORM.Repository
             {
                 return default;
             }
-            
-            return (TEntity)_context.DbSet.Select(x => x.Id == id);
+
+            Expression<Func<TEntity, bool>> expression = x => x.Id == 2;
+            IEnumerable<TEntity> items = _dbSet.Select(expression);
+            return items.FirstOrDefault();
         }
 
         public int Remove(IEnumerable<TEntity> entities)
         {
-            return _context.DbSet.Delete(entities);
+            return _dbSet.Delete(entities);
         }
 
         public int RemoveAll()
         {
-            return _context.DbSet.DeleteAll();
+            return _dbSet.DeleteAll();
         }
 
         public int RemoveById(int id)
@@ -62,7 +65,7 @@ namespace ORM.Repository
             TEntity? entity = GetById(id);
             if(entity != null)
             {
-                return _context.DbSet.Delete(entity);
+                return _dbSet.Delete(entity);
             }
 
             return 0;
@@ -74,7 +77,7 @@ namespace ORM.Repository
            TEntity updatedEntity = GetById(entity.Id); 
             if(updatedEntity != null) 
             {
-                return _context.DbSet.Update(updatedEntity);
+                return _dbSet.Update(updatedEntity);
             }
 
             return 0;
